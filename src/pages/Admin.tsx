@@ -15,9 +15,10 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { LogOut, Calendar as CalendarIcon, DollarSign, UserPlus, Home, Settings, Clock, Ban, Trash2, KeyRound, X, Shield, MessageCircle, Pencil, Palette, Star } from "lucide-react";
+import { LogOut, Calendar as CalendarIcon, DollarSign, UserPlus, Home, Settings, Clock, Ban, Trash2, KeyRound, X, Shield, MessageCircle, Pencil, Palette, Star, Zap } from "lucide-react";
 import { EditAppointmentModal } from "@/components/EditAppointmentModal";
 import { AppearanceTab } from "@/components/AppearanceTab";
+import { QuickSale } from "@/components/QuickSale";
 import { ImageUpload } from "@/components/ImageUpload";
 import { useAppearance } from "@/hooks/useAppearance";
 import { cn } from "@/lib/utils";
@@ -458,8 +459,9 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className={cn("mb-6 grid w-full", isSuperAdmin ? "grid-cols-6" : "grid-cols-4")}>
+          <TabsList className={cn("mb-6 grid w-full", isSuperAdmin ? "grid-cols-7" : "grid-cols-5")}>
             <TabsTrigger value="dashboard">Agendamentos</TabsTrigger>
+            <TabsTrigger value="quicksale" className="gap-1"><Zap className="h-3.5 w-3.5" />Venda</TabsTrigger>
             <TabsTrigger value="schedule">Agenda</TabsTrigger>
             <TabsTrigger value="services">Serviços</TabsTrigger>
             {isSuperAdmin && <TabsTrigger value="team">Equipe</TabsTrigger>}
@@ -637,6 +639,11 @@ export default function Admin() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* ─── TAB: Venda Rápida ─── */}
+          <TabsContent value="quicksale">
+            <QuickSale />
           </TabsContent>
 
           {/* ─── TAB: Schedule ─── */}
