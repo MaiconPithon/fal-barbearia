@@ -5,8 +5,13 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Trash2, ShoppingCart, CheckCircle, Search } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Trash2, ShoppingCart, CheckCircle, Search, CalendarIcon, Clock } from "lucide-react";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 interface CartItem {
   name: string;
@@ -23,6 +28,10 @@ export function QuickSale() {
   const [customPrice, setCustomPrice] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<"finalizado" | "pendente">("finalizado");
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedHour, setSelectedHour] = useState(String(new Date().getHours()).padStart(2, "0"));
+  const [selectedMinute, setSelectedMinute] = useState(String(new Date().getMinutes()).padStart(2, "0"));
 
   const { data: services } = useQuery({
     queryKey: ["quicksale-services"],
@@ -63,6 +72,16 @@ export function QuickSale() {
     setCart((prev) => prev.filter((_, i) => i !== idx));
   };
 
+  const resetForm = () => {
+    setClientName("");
+    setCart([]);
+    setPaymentStatus("finalizado");
+    setSelectedDate(new Date());
+    const now = new Date();
+    setSelectedHour(String(now.getHours()).padStart(2, "0"));
+    setSelectedMinute(String(now.getMinutes()).padStart(2, "0"));
+  };
+
   const handleFinalize = async () => {
     if (!clientName.trim()) {
       toast.error("Informe o nome do cliente.");
@@ -75,11 +94,9 @@ export function QuickSale() {
 
     setSubmitting(true);
     try {
-      const now = new Date();
-      const dateStr = format(now, "yyyy-MM-dd");
-      const timeStr = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+      const dateStr = format(selectedDate, "yyyy-MM-dd");
+      const timeStr = `${selectedHour}:${selectedMinute}`;
       const description = cart.map((c) => c.name).join(" + ");
-      // Use the first catalog service ID, or the first service available as fallback
       const serviceId = cart.find((c) => c.serviceId)?.serviceId || services?.[0]?.id;
 
       if (!serviceId) {
@@ -96,7 +113,7 @@ export function QuickSale() {
         service_id: serviceId,
         service_description: description,
         price: total,
-        status: "finalizado" as any,
+        status: paymentStatus as any,
         payment_method: "dinheiro" as any,
         actual_end_time: timeStr,
       });
@@ -104,14 +121,16 @@ export function QuickSale() {
       if (error) throw error;
 
       queryClient.invalidateQueries({ queryKey: ["admin-appointments"] });
-      toast.success("Atendimento registrado com sucesso!");
-      setClientName("");
-      setCart([]);
+      toast.success("✅ Atendimento registrado com sucesso!");
+      resetForm();
     } catch (err: any) {
       toast.error(err.message || "Erro ao registrar atendimento.");
     }
     setSubmitting(false);
   };
+
+  const hours = Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0"));
+  const minutes = Array.from({ length: 12 }, (_, i) => String(i * 5).padStart(2, "0"));
 
   return (
     <div className="space-y-6">
@@ -125,6 +144,75 @@ export function QuickSale() {
             onChange={(e) => setClientName(e.target.value)}
             className="text-lg border-border bg-secondary"
           />
+        </CardContent>
+      </Card>
+
+      {/* Date & Time + Payment Status */}
+      <Card className="border-border bg-card">
+        <CardContent className="pt-6 space-y-4">
+          {/* Date picker */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-muted-foreground">Data e Hora do Atendimento</label>
+            <div className="flex gap-2 flex-wrap">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-[180px] justify-start text-left font-normal border-border bg-secondary")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {format(selectedDate, "dd/MM/yyyy")}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={(d) => d && setSelectedDate(d)}
+                    locale={ptBR}
+                    className={cn("p-3 pointer-events-auto")}
+                  />
+                </PopoverContent>
+              </Popover>
+
+              {/* Time selectors */}
+              <div className="flex items-center gap-1">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <Select value={selectedHour} onValueChange={setSelectedHour}>
+                  <SelectTrigger className="w-[72px] border-border bg-secondary">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {hours.map((h) => (
+                      <SelectItem key={h} value={h}>{h}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-muted-foreground font-bold">:</span>
+                <Select value={selectedMinute} onValueChange={setSelectedMinute}>
+                  <SelectTrigger className="w-[72px] border-border bg-secondary">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {minutes.map((m) => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+
+          {/* Payment Status */}
+          <div>
+            <label className="mb-2 block text-sm font-medium text-muted-foreground">Status do Pagamento</label>
+            <Select value={paymentStatus} onValueChange={(v) => setPaymentStatus(v as "finalizado" | "pendente")}>
+              <SelectTrigger className="w-[200px] border-border bg-secondary">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="finalizado">✅ Pago</SelectItem>
+                <SelectItem value="pendente">⏳ Pendente</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </CardContent>
       </Card>
 
