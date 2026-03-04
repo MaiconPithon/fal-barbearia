@@ -189,20 +189,12 @@ export default function Agendar() {
   const isFullDayBlocked = blockedSlots?.some((b) => b.full_day);
   const blockedTimes = new Set(blockedSlots?.filter((b) => b.blocked_time).map((b) => b.blocked_time!.slice(0, 5)) || []);
 
-  // Fetch slot interval setting
-  const { data: slotIntervalSetting } = useQuery({
-    queryKey: ["slot_interval"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("business_settings")
-        .select("value")
-        .eq("key", "slot_interval_minutes")
-        .maybeSingle();
-      if (error) throw error;
-      return data?.value ? parseInt(data.value, 10) : 30;
-    },
-  });
-  const slotInterval = slotIntervalSetting || 30;
+  // Dynamic slot interval: use the minimum duration of selected services, or fallback to 15 min steps
+  const dynamicInterval = selectedServices.length > 0
+    ? Math.min(...selectedServices.map((s) => s.duration_minutes))
+    : 15;
+  // Use 15 min as the base grid interval for flexibility
+  const slotInterval = 15;
 
   const selectedDow = selectedDate ? getDay(selectedDate) : undefined;
   const dayConfig = scheduleConfig?.find((c) => c.day_of_week === selectedDow);
@@ -247,7 +239,8 @@ export default function Agendar() {
       toast.success("Agendamento realizado com sucesso!");
       const dateStr = selectedDate ? format(selectedDate, "dd/MM/yyyy") : "";
       const valor = `R$ ${totalPrice.toFixed(2).replace(".", ",")}`;
-      const barberMsg = `🔔 *Novo Agendamento!*\n\n👤 Cliente: ${clientName}\n📱 Tel: ${clientPhone}\n✂️ Serviço: ${serviceDescription}\n📅 Data: ${dateStr} às ${selectedTime}\n💰 Valor: ${valor}\n💳 Pagamento: ${paymentMethod === "pix" ? "Pix" : "Dinheiro"}`;
+      const pixReminder = paymentMethod === "pix" ? "\n\n⚠️ Lembre-se de enviar o comprovante do Pix para garantir sua vaga!" : "";
+      const barberMsg = `🔔 *Novo Agendamento!*\n\n👤 Cliente: ${clientName}\n📱 Tel: ${clientPhone}\n✂️ Serviço: ${serviceDescription}\n📅 Data: ${dateStr} às ${selectedTime}\n💰 Valor: ${valor}\n💳 Pagamento: ${paymentMethod === "pix" ? "Pix" : "Dinheiro"}${pixReminder}`;
       window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(barberMsg)}`, "_blank");
     },
     onError: () => {

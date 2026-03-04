@@ -74,7 +74,8 @@ const Index = () => {
         {/* CTA */}
         <Button
           size="lg"
-          className="mb-10 gap-3 rounded-full px-10 py-6 text-base font-bold uppercase tracking-wider shadow-lg shadow-primary/30 transition-all hover:shadow-xl hover:shadow-primary/40 hover:scale-105 sm:text-lg sm:px-14 bg-primary text-primary-foreground hover:bg-primary/90"
+          className="mb-10 gap-3 rounded-full px-10 py-6 text-base font-bold uppercase tracking-wider shadow-lg transition-all hover:shadow-xl hover:scale-105 sm:text-lg sm:px-14"
+          style={{ backgroundColor: '#d1b122', color: '#000' }}
           onClick={() => navigate("/agendar")}
         >
           <Scissors className="h-5 w-5" />
