@@ -15,7 +15,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { LogOut, Calendar as CalendarIcon, DollarSign, UserPlus, Home, Settings, Clock, Ban, Trash2, KeyRound, X, Shield, MessageCircle, Pencil, Palette, Star, Zap } from "lucide-react";
+import { LogOut, Calendar as CalendarIcon, DollarSign, UserPlus, Home, Settings, Clock, Ban, Trash2, KeyRound, X, Shield, MessageCircle, Pencil, Palette, Star, Zap, Plus } from "lucide-react";
 import { EditAppointmentModal } from "@/components/EditAppointmentModal";
 import { AppearanceTab } from "@/components/AppearanceTab";
 import { QuickSale } from "@/components/QuickSale";
@@ -52,6 +52,9 @@ export default function Admin() {
   const [newUserPassword, setNewUserPassword] = useState("");
   const [businessNameInput, setBusinessNameInput] = useState("");
   const [slotIntervalInput, setSlotIntervalInput] = useState("30");
+  const [serviceModalOpen, setServiceModalOpen] = useState(false);
+  const [editingService, setEditingService] = useState<any>(null);
+  const [serviceForm, setServiceForm] = useState({ name: "", price: "", duration_minutes: "30", buffer_minutes: "0" });
   const { businessName } = useBusinessName();
   const appearanceSettings = useAppearance();
 
@@ -222,6 +225,18 @@ export default function Admin() {
       queryClient.invalidateQueries({ queryKey: ["admin-services"] });
       toast.success("Serviço atualizado!");
     },
+  });
+
+  const deleteServiceMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("services").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-services"] });
+      toast.success("Serviço excluído!");
+    },
+    onError: (e: any) => toast.error(e.message),
   });
 
   const blockDateMutation = useMutation({
@@ -461,7 +476,7 @@ export default function Admin() {
         <Tabs defaultValue="dashboard" className="w-full">
           <TabsList className={cn("mb-6 grid w-full", isSuperAdmin ? "grid-cols-7" : "grid-cols-5")}>
             <TabsTrigger value="dashboard">Agendamentos</TabsTrigger>
-            <TabsTrigger value="quicksale" className="gap-1"><Zap className="h-3.5 w-3.5" />Venda</TabsTrigger>
+            <TabsTrigger value="quicksale" className="gap-1"><Zap className="h-3.5 w-3.5" />Encaixe</TabsTrigger>
             <TabsTrigger value="schedule">Agenda</TabsTrigger>
             <TabsTrigger value="services">Serviços</TabsTrigger>
             {isSuperAdmin && <TabsTrigger value="team">Equipe</TabsTrigger>}
@@ -785,9 +800,21 @@ export default function Admin() {
           <TabsContent value="services">
             <Card className="border-border bg-card">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-primary">
-                  <Clock className="h-5 w-5" /> Serviços, Duração e Intervalo
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-primary">
+                    <Clock className="h-5 w-5" /> Serviços, Duração e Intervalo
+                  </CardTitle>
+                  <Button
+                    onClick={() => {
+                      setServiceModalOpen(true);
+                      setEditingService(null);
+                      setServiceForm({ name: "", price: "", duration_minutes: "30", buffer_minutes: "0" });
+                    }}
+                    className="gap-2"
+                  >
+                    <Plus className="h-4 w-4" /> Novo Serviço
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 <p className="mb-4 text-sm text-muted-foreground">
@@ -847,11 +874,128 @@ export default function Admin() {
                         />
                         <span className="text-xs text-muted-foreground">{s.active ? "Ativo" : "Inativo"}</span>
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-primary hover:text-primary/80"
+                        title="Editar serviço"
+                        onClick={() => {
+                          setEditingService(s);
+                          setServiceForm({
+                            name: s.name,
+                            price: String(s.price),
+                            duration_minutes: String(s.duration_minutes),
+                            buffer_minutes: String(s.buffer_minutes),
+                          });
+                          setServiceModalOpen(true);
+                        }}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        title="Excluir serviço"
+                        onClick={() => {
+                          if (confirm(`Excluir o serviço "${s.name}"?`)) {
+                            deleteServiceMutation.mutate(s.id);
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   ))}
                 </div>
               </CardContent>
             </Card>
+
+            {/* Service Add/Edit Modal */}
+            {serviceModalOpen && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setServiceModalOpen(false)}>
+                <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+                  <h3 className="mb-4 text-lg font-bold text-primary">
+                    {editingService ? "Editar Serviço" : "Novo Serviço"}
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="mb-1 block text-sm text-muted-foreground">Nome</label>
+                      <Input
+                        value={serviceForm.name}
+                        onChange={(e) => setServiceForm((f) => ({ ...f, name: e.target.value }))}
+                        placeholder="Ex: Corte + Barba"
+                        className="border-border bg-secondary text-foreground"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm text-muted-foreground">Preço (R$)</label>
+                      <Input
+                        value={serviceForm.price}
+                        onChange={(e) => setServiceForm((f) => ({ ...f, price: e.target.value }))}
+                        placeholder="35.00"
+                        className="border-border bg-secondary text-foreground"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="mb-1 block text-sm text-muted-foreground">Duração (min)</label>
+                        <Select value={serviceForm.duration_minutes} onValueChange={(v) => setServiceForm((f) => ({ ...f, duration_minutes: v }))}>
+                          <SelectTrigger className="border-border bg-secondary"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {[15, 20, 30, 40, 45, 60, 90, 120].map((m) => (
+                              <SelectItem key={m} value={String(m)}>{m} min</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-sm text-muted-foreground">Intervalo (min)</label>
+                        <Select value={serviceForm.buffer_minutes} onValueChange={(v) => setServiceForm((f) => ({ ...f, buffer_minutes: v }))}>
+                          <SelectTrigger className="border-border bg-secondary"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {[0, 5, 10, 15, 20].map((m) => (
+                              <SelectItem key={m} value={String(m)}>{m} min</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        className="flex-1"
+                        onClick={async () => {
+                          const price = parseFloat(serviceForm.price.replace(",", "."));
+                          if (!serviceForm.name.trim() || isNaN(price)) {
+                            toast.error("Preencha nome e preço válido.");
+                            return;
+                          }
+                          const payload = {
+                            name: serviceForm.name.trim(),
+                            price,
+                            duration_minutes: Number(serviceForm.duration_minutes),
+                            buffer_minutes: Number(serviceForm.buffer_minutes),
+                          };
+                          if (editingService) {
+                            updateService.mutate({ id: editingService.id, updates: payload });
+                          } else {
+                            const maxOrder = services?.reduce((max, s) => Math.max(max, s.sort_order), 0) || 0;
+                            const { error } = await supabase.from("services").insert({ ...payload, sort_order: maxOrder + 1 } as any);
+                            if (error) { toast.error(error.message); return; }
+                            queryClient.invalidateQueries({ queryKey: ["admin-services"] });
+                            toast.success("Serviço criado!");
+                          }
+                          setServiceModalOpen(false);
+                        }}
+                      >
+                        {editingService ? "Salvar" : "Criar"}
+                      </Button>
+                      <Button variant="outline" onClick={() => setServiceModalOpen(false)}>Cancelar</Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </TabsContent>
 
           {/* ─── TAB: Team (Super Admin only) ─── */}

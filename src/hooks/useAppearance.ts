@@ -23,7 +23,7 @@ export function useAppearance() {
       const { data, error } = await supabase
         .from("business_settings")
         .select("key, value")
-        .in("key", ["primary_color", "background_color", "font_family", "title_bold", "title_italic", "background_image", "logo_image"]);
+        .in("key", ["primary_color", "background_color", "info_color", "font_family", "title_bold", "title_italic", "background_image", "logo_image"]);
       if (error) throw error;
       const map: Record<string, string> = {};
       data.forEach((r: any) => { map[r.key] = r.value; });

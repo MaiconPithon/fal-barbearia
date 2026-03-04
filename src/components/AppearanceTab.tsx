@@ -58,6 +58,7 @@ export function AppearanceTab({ settings }: Props) {
   const queryClient = useQueryClient();
   const [primaryColor, setPrimaryColor] = useState("#d4a017");
   const [bgColor, setBgColor] = useState("#0a0a0a");
+  const [infoColor, setInfoColor] = useState("#ffffff");
   const [fontFamily, setFontFamily] = useState("Inter");
   const [titleBold, setTitleBold] = useState(true);
   const [titleItalic, setTitleItalic] = useState(false);
@@ -67,6 +68,7 @@ export function AppearanceTab({ settings }: Props) {
     if (!settings) return;
     if (settings.primary_color) setPrimaryColor(hslToHex(settings.primary_color));
     if (settings.background_color) setBgColor(hslToHex(settings.background_color));
+    if (settings.info_color) setInfoColor(hslToHex(settings.info_color));
     if (settings.font_family) setFontFamily(settings.font_family);
     setTitleBold(settings.title_bold === "true");
     setTitleItalic(settings.title_italic === "true");
@@ -78,16 +80,29 @@ export function AppearanceTab({ settings }: Props) {
       const updates = [
         { key: "primary_color", value: hexToHsl(primaryColor) },
         { key: "background_color", value: hexToHsl(bgColor) },
+        { key: "info_color", value: hexToHsl(infoColor) },
         { key: "font_family", value: fontFamily },
         { key: "title_bold", value: String(titleBold) },
         { key: "title_italic", value: String(titleItalic) },
       ];
       for (const u of updates) {
-        const { error } = await supabase
+        const { data: existing } = await supabase
           .from("business_settings")
-          .update({ value: u.value })
-          .eq("key", u.key);
-        if (error) throw error;
+          .select("id")
+          .eq("key", u.key)
+          .maybeSingle();
+        if (existing) {
+          const { error } = await supabase
+            .from("business_settings")
+            .update({ value: u.value })
+            .eq("key", u.key);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase
+            .from("business_settings" as any)
+            .insert({ key: u.key, value: u.value } as any);
+          if (error) throw error;
+        }
       }
       queryClient.invalidateQueries({ queryKey: ["appearance-settings"] });
       toast.success("Aparência salva com sucesso!");
@@ -100,39 +115,55 @@ export function AppearanceTab({ settings }: Props) {
   return (
     <div className="grid gap-6 md:grid-cols-2">
       {/* Colors */}
-      <Card className="border-border bg-card">
+      <Card className="border-border bg-card md:col-span-2">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">
-            <Palette className="h-5 w-5" /> Cores
+            <Palette className="h-5 w-5" /> Cores do Site
           </CardTitle>
+          <p className="text-sm text-muted-foreground">As cores serão aplicadas em todo o site (landing, agendamento, painel).</p>
         </CardHeader>
-        <CardContent className="space-y-5">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-foreground">Cor Principal</label>
-            <div className="flex items-center gap-3">
-              <Input
-                type="color"
-                value={primaryColor}
-                onChange={(e) => setPrimaryColor(e.target.value)}
-                className="h-12 w-16 cursor-pointer border-border p-1"
-              />
-              <span className="text-sm text-muted-foreground">{primaryColor}</span>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-foreground">Cor Principal (botões, destaques)</label>
+              <div className="flex items-center gap-3">
+                <Input
+                  type="color"
+                  value={primaryColor}
+                  onChange={(e) => setPrimaryColor(e.target.value)}
+                  className="h-12 w-16 cursor-pointer border-border p-1"
+                />
+                <span className="text-sm text-muted-foreground">{primaryColor}</span>
+              </div>
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">Botões, destaques e acentos.</p>
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-foreground">Cor de Fundo</label>
-            <div className="flex items-center gap-3">
-              <Input
-                type="color"
-                value={bgColor}
-                onChange={(e) => setBgColor(e.target.value)}
-                className="h-12 w-16 cursor-pointer border-border p-1"
-              />
-              <span className="text-sm text-muted-foreground">{bgColor}</span>
+            <div>
+              <label className="mb-2 block text-sm font-medium text-foreground">Cor de Fundo</label>
+              <div className="flex items-center gap-3">
+                <Input
+                  type="color"
+                  value={bgColor}
+                  onChange={(e) => setBgColor(e.target.value)}
+                  className="h-12 w-16 cursor-pointer border-border p-1"
+                />
+                <span className="text-sm text-muted-foreground">{bgColor}</span>
+              </div>
             </div>
-            <p className="mt-1 text-xs text-muted-foreground">Fundo geral do site.</p>
+            <div>
+              <label className="mb-2 block text-sm font-medium text-foreground">Cor de Informações (telefone, horário, local)</label>
+              <div className="flex items-center gap-3">
+                <Input
+                  type="color"
+                  value={infoColor}
+                  onChange={(e) => setInfoColor(e.target.value)}
+                  className="h-12 w-16 cursor-pointer border-border p-1"
+                />
+                <span className="text-sm text-muted-foreground">{infoColor}</span>
+              </div>
+            </div>
           </div>
+          <Button className="mt-4" onClick={handleSave} disabled={saving}>
+            {saving ? "Salvando..." : "Salvar Cores"}
+          </Button>
         </CardContent>
       </Card>
 

@@ -82,7 +82,7 @@ const Index = () => {
         </Button>
 
         {/* Info row */}
-        <div className="flex flex-wrap items-center justify-center gap-6 text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-center gap-6" style={{ color: appearance?.info_color ? `hsl(${appearance.info_color})` : undefined }}>
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-primary" />
             <span className="text-sm">Ter–Sáb · 08h às 21h</span>
