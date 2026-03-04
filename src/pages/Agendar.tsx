@@ -36,10 +36,10 @@ const generateTimeSlots = (openTime = "08:00", closeTime = "21:00", intervalMinu
 };
 
 // Check if a slot overlaps with the break period
+// A slot is blocked if it STARTS during break OR if the service would bleed into break
 const overlapsBreak = (
   slotTime: string,
   durationMinutes: number,
-  bufferMinutes: number,
   breakStart?: string | null,
   breakEnd?: string | null
 ): boolean => {
@@ -51,6 +51,7 @@ const overlapsBreak = (
   const [beh, bem] = breakEnd.split(":").map(Number);
   const bStart = bsh * 60 + bsm;
   const bEnd = beh * 60 + bem;
+  // Slot is blocked if: slot starts during break, OR service bleeds into break
   return slotStart < bEnd && slotEnd > bStart;
 };
 
@@ -126,7 +127,7 @@ export default function Agendar() {
         .from("appointments")
         .select("appointment_time, service_id, status, actual_end_time, services(duration_minutes, buffer_minutes)")
         .eq("appointment_date", dateStr)
-        .in("status", ["pendente", "confirmado", "finalizado"]);
+        .in("status", ["pendente", "confirmado"]);
       if (error) throw error;
       return data;
     },
@@ -416,7 +417,7 @@ export default function Agendar() {
                 {timeSlots.map((t) => {
                   const duration = totalDuration || 30;
                   const buffer = totalBuffer || 5;
-                  const inBreak = overlapsBreak(t, duration, buffer, dayConfig?.break_start, dayConfig?.break_end);
+                  const inBreak = overlapsBreak(t, duration, dayConfig?.break_start, dayConfig?.break_end);
                   const isPast = selectedDate && isToday(selectedDate) && (() => {
                     const [h, m] = t.split(":").map(Number);
                     const now = new Date();
