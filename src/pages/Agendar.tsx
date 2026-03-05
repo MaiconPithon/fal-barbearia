@@ -7,7 +7,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { PixPayment } from "@/components/PixPayment";
-import { ArrowLeft, ChevronRight, Check, MessageCircle, Star, Clock, AlertTriangle } from "lucide-react";
+import { ArrowLeft, ChevronRight, Check, MessageCircle, Star, Clock, AlertTriangle, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { format, getDay, isBefore, startOfDay, addDays, isAfter, isToday } from "date-fns";
@@ -461,7 +461,17 @@ export default function Agendar() {
         {/* Step: Time — VERTICAL TIMELINE */}
         {step === "time" && (
           <div>
-            <h2 className="mb-1 text-lg font-semibold text-primary">Escolha o horário</h2>
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-lg font-semibold text-primary">Escolha o horário</h2>
+              {selectedTime && (
+                <button
+                  onClick={() => setSelectedTime("")}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-destructive transition-colors px-2 py-1 rounded-md hover:bg-destructive/10"
+                >
+                  <X className="h-3 w-3" /> Limpar
+                </button>
+              )}
+            </div>
             <p className="mb-4 text-sm text-muted-foreground">
               {selectedDate && format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
               {" — "}{totalDuration} min necessários
@@ -590,16 +600,16 @@ export default function Agendar() {
                   const top = (startMin - openMin) * PX_PER_MIN;
                   const height = (totalDuration || 30) * PX_PER_MIN;
                   return (
-                    <div
-                      className="absolute left-8 right-0 rounded-md pointer-events-none z-20 border-2 border-[#d1b122] bg-[#d1b122]/15 flex items-start px-3 py-1"
-                      style={{ top: `${top}px`, minHeight: '48px', height: `${Math.max(height, 48)}px` }}
-                    >
-                      <span className="text-[10px] font-semibold text-[#d1b122] leading-tight">
-                        {serviceDescription}
-                        <br />
-                        {toTime(startMin)} até {toTime(startMin + (totalDuration || 30))}
-                      </span>
-                    </div>
+                     <div
+                       className="absolute left-8 right-0 rounded-md pointer-events-none z-20 border-2 border-[#d1b122] bg-[#d1b122]/20 flex items-start px-3 py-1.5"
+                       style={{ top: `${top}px`, minHeight: '52px', height: `${Math.max(height, 52)}px` }}
+                     >
+                       <span className="text-[11px] font-bold text-black leading-tight drop-shadow-[0_0_2px_rgba(209,177,34,0.8)]">
+                         {serviceDescription}
+                         <br />
+                         {toTime(startMin)} até {toTime(startMin + (totalDuration || 30))}
+                       </span>
+                     </div>
                   );
                 })()}
 
