@@ -257,7 +257,10 @@ export default function Agendar() {
     const duration = totalDuration || 30;
     const slots: { time: number; status: ReturnType<typeof getSlotStatus> }[] = [];
 
-    for (let m = openMin; m < closeMin; m += TIMELINE_SLOT) {
+    // Align first slot to the 15-min grid from midnight (e.g. 08:20 → 08:20, 08:35, 08:50...)
+    // Ensure we start exactly at openMin and step in exact TIMELINE_SLOT increments
+    const firstSlot = openMin;
+    for (let m = firstSlot; m < closeMin; m += TIMELINE_SLOT) {
       const status = getSlotStatus(m, duration);
       slots.push({ time: m, status });
     }
@@ -588,11 +591,13 @@ export default function Agendar() {
                   const height = (totalDuration || 30) * PX_PER_MIN;
                   return (
                     <div
-                      className="absolute left-8 right-0 rounded-md pointer-events-none z-20 border-2 border-[#d1b122] bg-[#d1b122]/15 flex items-center px-3"
-                      style={{ top: `${top}px`, height: `${height}px` }}
+                      className="absolute left-8 right-0 rounded-md pointer-events-none z-20 border-2 border-[#d1b122] bg-[#d1b122]/15 flex items-start px-3 py-1"
+                      style={{ top: `${top}px`, minHeight: '48px', height: `${Math.max(height, 48)}px` }}
                     >
-                      <span className="text-xs font-semibold text-[#d1b122] truncate">
-                        {serviceDescription} — {toTime(startMin)} até {toTime(startMin + (totalDuration || 30))}
+                      <span className="text-xs font-semibold text-[#d1b122] leading-tight">
+                        {serviceDescription}
+                        <br />
+                        {toTime(startMin)} até {toTime(startMin + (totalDuration || 30))}
                       </span>
                     </div>
                   );
