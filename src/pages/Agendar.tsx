@@ -195,24 +195,26 @@ export default function Agendar() {
       });
     }
 
-    // Booked appointments
-    (appointmentsRaw || []).forEach((a: any) => {
-      const apptStart = toMin(a.appointment_time.slice(0, 5));
-      let apptEnd: number;
-      if (a.actual_end_time) {
-        apptEnd = toMin(a.actual_end_time.slice(0, 5));
-      } else {
-        const dur = a.services?.duration_minutes ?? 30;
-        const buf = a.services?.buffer_minutes ?? 0;
-        apptEnd = apptStart + dur + buf;
-      }
-      blocks.push({
-        start: apptStart,
-        end: apptEnd,
-        type: "booked",
-        label: a.client_name || "Ocupado",
+    // Booked appointments (defensive filter: never block timeline with cancelled appointments)
+    (appointmentsRaw || [])
+      .filter((a: any) => a.status !== "cancelado")
+      .forEach((a: any) => {
+        const apptStart = toMin(a.appointment_time.slice(0, 5));
+        let apptEnd: number;
+        if (a.actual_end_time) {
+          apptEnd = toMin(a.actual_end_time.slice(0, 5));
+        } else {
+          const dur = a.services?.duration_minutes ?? 30;
+          const buf = a.services?.buffer_minutes ?? 0;
+          apptEnd = apptStart + dur + buf;
+        }
+        blocks.push({
+          start: apptStart,
+          end: apptEnd,
+          type: "booked",
+          label: a.client_name || "Ocupado",
+        });
       });
-    });
 
     // Blocked time slots
     blockedTimes.forEach((t) => {

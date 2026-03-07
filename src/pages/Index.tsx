@@ -70,15 +70,24 @@ const Index = () => {
 
   const cancelMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("appointments").update({ status: "cancelado" } as any).eq("id", id);
+      const { data, error } = await supabase.rpc("cancel_appointment_by_phone" as any, {
+        _appointment_id: id,
+        _phone: searchPhone,
+      } as any);
       if (error) throw error;
+      if (!data) throw new Error("Não foi possível confirmar o cancelamento.");
+      return true;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["my-appointments", searchPhone] });
-      queryClient.invalidateQueries({ queryKey: ["appointments"] }); // invalidates all date-specific appointment queries
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["my-appointments", searchPhone] }),
+        queryClient.invalidateQueries({ queryKey: ["appointments"] }),
+        queryClient.refetchQueries({ queryKey: ["my-appointments", searchPhone], type: "active" }),
+        queryClient.refetchQueries({ queryKey: ["appointments"], type: "active" }),
+      ]);
       toast.success("Horário liberado com sucesso!");
     },
-    onError: () => toast.error("Não foi possível cancelar. Tente novamente."),
+    onError: (err: any) => toast.error(err?.message || "Não foi possível cancelar. Tente novamente."),
   });
 
   // Returns: "cancel" | "past" | "grace" | "blocked" | "already_cancelled"
