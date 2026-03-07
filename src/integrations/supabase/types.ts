@@ -225,6 +225,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cancel_appointment_by_phone: {
+        Args: { _appointment_id: string; _phone: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
