@@ -40,6 +40,7 @@ interface TimelineBlock {
 
 export default function Agendar() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const appearance = useAppearance();
   const [step, setStep] = useState<Step>("service");
   const [selectedServiceIds, setSelectedServiceIds] = useState<Set<string>>(new Set());
