@@ -263,24 +263,25 @@ export default function Agendar() {
     return { available: true };
   };
 
-  // Generate available clickable slots on 15-min grid
+  // Generate available clickable slots without implicit rounding/step-to-5 behavior
   const timelineSlots = useMemo(() => {
     if (!dayConfig) return [];
     const openMin = toMin(dayConfig.open_time?.slice(0, 5) || "08:00");
     const closeMin = toMin(dayConfig.close_time?.slice(0, 5) || "21:00");
-    const duration = totalDuration || 30;
+    const duration = totalServiceSpan || 30;
+    const slotStep = Math.max(totalServiceSpan || slotInterval || 30, 1);
     const slots: { time: number; status: ReturnType<typeof getSlotStatus> }[] = [];
     const slotTimes = new Set<number>();
 
-    // 1. Add grid slots (e.g. 08:00, 08:30...)
-    for (let m = openMin; m < closeMin; m += slotInterval) {
+    // 1. Base slots follow selected service span (duration + admin interval)
+    for (let m = openMin; m < closeMin; m += slotStep) {
       slotTimes.add(m);
     }
 
     // 2. Add exact end times of existing appointments (so next can start immediately)
     timelineBlocks
-      .filter(b => b.type === "booked")
-      .forEach(b => {
+      .filter((b) => b.type === "booked")
+      .forEach((b) => {
         if (b.end >= openMin && b.end < closeMin) {
           slotTimes.add(b.end);
         }
@@ -289,13 +290,13 @@ export default function Agendar() {
     // Sort and build final slots
     Array.from(slotTimes)
       .sort((a, b) => a - b)
-      .forEach(m => {
+      .forEach((m) => {
         const status = getSlotStatus(m, duration);
         slots.push({ time: m, status });
       });
 
     return slots;
-  }, [dayConfig, totalDuration, timelineBlocks, slotInterval]);
+  }, [dayConfig, totalServiceSpan, timelineBlocks, slotInterval]);
 
   // Pixel height per minute for timeline
   const PX_PER_MIN = 2.5;
