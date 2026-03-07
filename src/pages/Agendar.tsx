@@ -131,6 +131,8 @@ export default function Agendar() {
   const selectedServices = services?.filter((s) => selectedServiceIds.has(s.id)) || [];
   const totalPrice = selectedServices.reduce((sum, s) => sum + Number(s.price), 0);
   const totalDuration = selectedServices.reduce((sum, s) => sum + s.duration_minutes, 0);
+  const totalBuffer = selectedServices.reduce((sum, s) => sum + (s.buffer_minutes ?? 0), 0);
+  const totalServiceSpan = totalDuration + totalBuffer;
   const serviceDescription = selectedServices.map((s) => s.name).join(" + ");
 
   const toggleService = (id: string) => {
