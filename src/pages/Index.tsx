@@ -75,7 +75,8 @@ const Index = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["my-appointments", searchPhone] });
-      toast.success("Agendamento cancelado com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["appointments"] }); // instant clear on timeline
+      toast.success("Horário liberado com sucesso!");
     },
     onError: () => toast.error("Não foi possível cancelar. Tente novamente."),
   });
@@ -212,7 +213,7 @@ const Index = () => {
         {/* Expanded panel */}
         {widgetOpen && (
           <div className="border-t border-white/10 bg-black/80 backdrop-blur-md px-4 py-4 max-h-[60vh] overflow-y-auto">
-            <div className="mx-auto max-w-lg">
+            <div className="mx-auto max-w-lg pb-24">
               {/* Header */}
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm font-semibold text-foreground">Consultar agendamentos por telefone</p>
@@ -245,15 +246,15 @@ const Index = () => {
                 <p className="text-center text-xs text-muted-foreground py-4">Buscando...</p>
               )}
 
-              {!loadingAppts && searchPhone && myAppointments?.length === 0 && (
+              {!loadingAppts && searchPhone && myAppointments && myAppointments.filter((a: any) => a.status !== "cancelado").length === 0 && (
                 <p className="text-center text-xs text-muted-foreground py-6">
-                  Nenhum agendamento encontrado para este número.
+                  Nenhum agendamento ativo encontrado para este número.
                 </p>
               )}
 
-              {!loadingAppts && myAppointments && myAppointments.length > 0 && (
+              {!loadingAppts && myAppointments && myAppointments.filter((a: any) => a.status !== "cancelado").length > 0 && (
                 <div className="space-y-2">
-                  {myAppointments.map((a: any) => {
+                  {myAppointments.filter((a: any) => a.status !== "cancelado").map((a: any) => {
                     const cancelStatus = getCancelStatus(a);
                     const isCancelled = a.status === "cancelado";
                     const serviceName = a.service_description || a.services?.name || "Serviço";
