@@ -25,6 +25,7 @@ const App = () => (
       <AppearanceLoader>
         <Toaster />
         <Sonner />
+        <Analytics />
         <HashRouter>
           <Routes>
             <Route path="/" element={<Index />} />
