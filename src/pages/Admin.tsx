@@ -755,8 +755,8 @@ export default function Admin() {
                               updateSchedule.mutate({ id: day.id, updates: { break_end: e.target.value || null } })
                             }
                             placeholder="Fim"
-                            className="w-28 border-border bg-background text-sm"
-                          />
+                              className="w-28 border border-primary/40 bg-background text-sm text-white"
+                            />
                         </div>
                       )}
                     </div>
