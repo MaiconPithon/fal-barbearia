@@ -321,7 +321,7 @@ export function QuickSale() {
         disabled={submitting || cart.length === 0 || !clientName.trim()}
       >
         <CheckCircle className="h-5 w-5" />
-        {submitting ? "Registrando..." : "Finalizar Atendimento"}
+        {submitting ? "Registrando..." : "ADICIONAR ENCAIXE NA AGENDA"}
       </Button>
     </div>
   );
