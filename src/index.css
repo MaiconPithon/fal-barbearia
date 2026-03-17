@@ -64,4 +64,15 @@
   input, textarea, select {
     color: hsl(var(--foreground)) !important;
   }
+
+  input[type="time"],
+  input[type="date"] {
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+  }
+
+  input[type="time"]::-webkit-calendar-picker-indicator,
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+  }
 }

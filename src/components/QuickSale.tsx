@@ -105,6 +105,22 @@ export function QuickSale() {
         return;
       }
 
+      // Calculate total duration from catalog services in cart
+      const totalDuration = cart.reduce((sum, item) => {
+        if (item.serviceId) {
+          const svc = services?.find((s) => s.id === item.serviceId);
+          return sum + (svc?.duration_minutes || 30);
+        }
+        return sum + 30; // default 30 min for custom items
+      }, 0);
+
+      // Calculate actual end time
+      const startMinutes = parseInt(selectedHour) * 60 + parseInt(selectedMinute);
+      const endMinutes = startMinutes + totalDuration;
+      const endH = String(Math.floor(endMinutes / 60) % 24).padStart(2, "0");
+      const endM = String(endMinutes % 60).padStart(2, "0");
+      const actualEndTime = `${endH}:${endM}`;
+
       const { error } = await supabase.from("appointments").insert({
         client_name: clientName.trim(),
         client_phone: "",
@@ -115,7 +131,7 @@ export function QuickSale() {
         price: total,
         status: paymentStatus as any,
         payment_method: "dinheiro" as any,
-        actual_end_time: timeStr,
+        actual_end_time: null,
       });
 
       if (error) throw error;
@@ -237,8 +253,8 @@ export function QuickSale() {
                   onClick={() => addFromCatalog(s)}
                   className="flex w-full items-center justify-between px-4 py-3 text-sm hover:bg-primary/10 transition-colors border-b border-border last:border-0"
                 >
-                  <span className="text-foreground">{s.name}</span>
-                  <span className="font-semibold text-primary">
+                   <span className="text-white">{s.name}</span>
+                  <span className="font-semibold text-white">
                     R$ {Number(s.price).toFixed(2).replace(".", ",")}
                   </span>
                 </button>
@@ -321,7 +337,7 @@ export function QuickSale() {
         disabled={submitting || cart.length === 0 || !clientName.trim()}
       >
         <CheckCircle className="h-5 w-5" />
-        {submitting ? "Registrando..." : "Finalizar Atendimento"}
+        {submitting ? "Registrando..." : "ADICIONAR ENCAIXE NA AGENDA"}
       </Button>
     </div>
   );
