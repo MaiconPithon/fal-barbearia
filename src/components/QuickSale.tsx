@@ -237,8 +237,8 @@ export function QuickSale() {
                   onClick={() => addFromCatalog(s)}
                   className="flex w-full items-center justify-between px-4 py-3 text-sm hover:bg-primary/10 transition-colors border-b border-border last:border-0"
                 >
-                  <span className="text-foreground">{s.name}</span>
-                  <span className="font-semibold text-primary">
+                   <span className="text-white">{s.name}</span>
+                  <span className="font-semibold text-white">
                     R$ {Number(s.price).toFixed(2).replace(".", ",")}
                   </span>
                 </button>

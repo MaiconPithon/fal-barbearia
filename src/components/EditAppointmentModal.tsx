@@ -189,9 +189,9 @@ export function EditAppointmentModal({ open, onOpenChange, appointment }: EditAp
               <div className="mt-2 space-y-1">
                 {customItems.map((c, i) => (
                   <div key={i} className="flex items-center justify-between rounded border border-border bg-secondary px-3 py-1.5">
-                    <span className="text-sm text-foreground">{c.name}</span>
+                    <span className="text-sm text-white">{c.name}</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-primary">
+                      <span className="text-sm font-semibold text-white">
                         R$ {c.price.toFixed(2).replace(".", ",")}
                       </span>
                       <button onClick={() => removeCustomItem(i)} className="text-destructive hover:text-destructive/80">
