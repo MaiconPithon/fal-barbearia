@@ -146,7 +146,7 @@ const Index = () => {
 
   return (
     <main
-      className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden pb-24 sm:pb-0"
+      className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden pb-[160px] sm:pb-0"
       style={{
         backgroundImage: `linear-gradient(rgba(10,10,10,0.82), rgba(10,10,10,0.82)), url("${appearance?.background_image || '/images/site-bg.png'}")`,
         backgroundSize: 'cover',
