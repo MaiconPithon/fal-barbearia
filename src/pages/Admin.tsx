@@ -908,7 +908,7 @@ export default function Admin() {
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            {[15, 20, 30, 40, 45, 60, 90, 120].map((m) => (
+                            {[10, 15, 20, 30, 40, 45, 50, 60, 90, 120].map((m) => (
                               <SelectItem key={m} value={String(m)}>{m} min</SelectItem>
                             ))}
                           </SelectContent>
