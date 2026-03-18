@@ -110,7 +110,7 @@ export function QuickSale() {
         setSubmitting(false);
         return;
       }
-      const timeStr = `${selectedHour}:${selectedMinute}`;
+      
       const description = cart.map((c) => c.name).join(" + ");
       const serviceId = cart.find((c) => c.serviceId)?.serviceId || services?.[0]?.id;
 
