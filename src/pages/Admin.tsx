@@ -504,11 +504,12 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="dashboard" className="w-full">
-          <TabsList className={cn("mb-6 grid w-full", isSuperAdmin ? "grid-cols-7" : "grid-cols-5")}>
+          <TabsList className={cn("mb-6 grid w-full", isSuperAdmin ? "grid-cols-8" : "grid-cols-5")}>
             <TabsTrigger value="dashboard">Agendamentos</TabsTrigger>
             <TabsTrigger value="quicksale" className="gap-1"><Zap className="h-3.5 w-3.5" />Encaixe</TabsTrigger>
             <TabsTrigger value="schedule">Agenda</TabsTrigger>
             <TabsTrigger value="services">Serviços</TabsTrigger>
+            {isSuperAdmin && <TabsTrigger value="reviews" className="gap-1"><Star className="h-3.5 w-3.5" />Avaliações</TabsTrigger>}
             {isSuperAdmin && <TabsTrigger value="team">Equipe</TabsTrigger>}
             {isSuperAdmin && <TabsTrigger value="appearance">Aparência</TabsTrigger>}
             {isSuperAdmin && <TabsTrigger value="settings">Config</TabsTrigger>}
