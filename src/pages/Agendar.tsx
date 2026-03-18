@@ -370,8 +370,8 @@ export default function Agendar() {
       const barberMsg = `🔔 *Novo Agendamento!*\n\n👤 Cliente: ${clientName}\n📱 Tel: ${clientPhone}\n✂️ Serviço: ${serviceDescription}\n📅 Data: ${dateStr} às ${selectedTime}\n💰 Valor: ${valor}\n💳 Pagamento: ${paymentMethod === "pix" ? "Pix" : "Dinheiro"}${pixReminder}`;
       window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(barberMsg)}`, "_blank");
     },
-    onError: () => {
-      toast.error("Erro ao agendar. Tente novamente.");
+    onError: (err: any) => {
+      toast.error(err?.message || "Erro ao agendar. Tente novamente.");
     },
   });
 
