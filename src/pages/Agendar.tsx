@@ -330,15 +330,29 @@ export default function Agendar() {
     mutationFn: async () => {
       const firstServiceId = selectedServices[0]?.id;
       if (!firstServiceId) throw new Error("Selecione ao menos um serviço");
+
+      // Check for duplicate appointment at the same date/time
+      const dateStr = format(selectedDate!, "yyyy-MM-dd");
+      const { data: existing, error: checkError } = await supabase
+        .from("appointments")
+        .select("id")
+        .eq("appointment_date", dateStr)
+        .eq("appointment_time", selectedTime)
+        .in("status", ["pendente", "confirmado"]);
+      if (checkError) throw checkError;
+      if (existing && existing.length > 0) {
+        throw new Error("Este horário já está ocupado. Por favor, escolha outro horário.");
+      }
+
       const { data, error } = await supabase
         .from("appointments")
         .insert({
           client_name: clientName,
           client_phone: clientPhone,
           service_id: firstServiceId,
-          appointment_date: format(selectedDate!, "yyyy-MM-dd"),
+          appointment_date: dateStr,
           appointment_time: selectedTime,
-          payment_method: paymentMethod,
+          payment_method: "dinheiro" as any,
           price: totalPrice,
           service_description: serviceDescription,
         } as any)
