@@ -74,18 +74,21 @@ export type Database = {
         Row: {
           created_at: string
           estrelas: number
+          hidden: boolean
           id: string
           nome_cliente: string
         }
         Insert: {
           created_at?: string
           estrelas: number
+          hidden?: boolean
           id?: string
           nome_cliente: string
         }
         Update: {
           created_at?: string
           estrelas?: number
+          hidden?: boolean
           id?: string
           nome_cliente?: string
         }
