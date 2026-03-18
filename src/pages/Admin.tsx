@@ -1010,7 +1010,7 @@ export default function Admin() {
                         <Select value={serviceForm.duration_minutes} onValueChange={(v) => setServiceForm((f) => ({ ...f, duration_minutes: v }))}>
                           <SelectTrigger className="border-border bg-secondary"><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            {[15, 20, 30, 40, 45, 60, 90, 120].map((m) => (
+                            {[10, 15, 20, 30, 40, 45, 50, 60, 90, 120].map((m) => (
                               <SelectItem key={m} value={String(m)}>{m} min</SelectItem>
                             ))}
                           </SelectContent>
