@@ -330,17 +330,31 @@ export default function Agendar() {
       const firstServiceId = selectedServices[0]?.id;
       if (!firstServiceId) throw new Error("Selecione ao menos um serviço");
 
-      // Check for duplicate appointment at the same date/time
+      // Check for overlapping appointments (time range collision)
       const dateStr = format(selectedDate!, "yyyy-MM-dd");
-      const { data: existing, error: checkError } = await supabase
+      const { data: existingAppts, error: checkError } = await supabase
         .from("appointments")
-        .select("id")
+        .select("appointment_time, service_id, actual_end_time, services(duration_minutes, buffer_minutes)")
         .eq("appointment_date", dateStr)
-        .eq("appointment_time", selectedTime)
         .in("status", ["pendente", "confirmado"]);
       if (checkError) throw checkError;
-      if (existing && existing.length > 0) {
-        throw new Error("Este horário já está ocupado. Por favor, escolha outro horário.");
+
+      const newStart = toMin(selectedTime);
+      const newEnd = newStart + totalServiceSpan;
+
+      for (const appt of existingAppts || []) {
+        const aStart = toMin(appt.appointment_time.slice(0, 5));
+        let aEnd: number;
+        if (appt.actual_end_time) {
+          aEnd = toMin(appt.actual_end_time.slice(0, 5));
+        } else {
+          const dur = (appt as any).services?.duration_minutes ?? 30;
+          const buf = (appt as any).services?.buffer_minutes ?? 0;
+          aEnd = aStart + dur + buf;
+        }
+        if (newStart < aEnd && newEnd > aStart) {
+          throw new Error(`Este período já está ocupado por outro serviço. Escolha um horário após as ${toTime(aEnd)}.`);
+        }
       }
 
       const { data, error } = await supabase
