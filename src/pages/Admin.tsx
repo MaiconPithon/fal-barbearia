@@ -57,6 +57,12 @@ export default function Admin() {
   const [editingService, setEditingService] = useState<any>(null);
   const [serviceForm, setServiceForm] = useState({ name: "", price: "", duration_minutes: "30", buffer_minutes: "0" });
   const [reviewFilterNota, setReviewFilterNota] = useState<string>("all");
+  const [overrideModalOpen, setOverrideModalOpen] = useState(false);
+  const [overrideDate, setOverrideDate] = useState<Date | undefined>();
+  const [overrideForm, setOverrideForm] = useState({ open_time: "08:00", close_time: "21:00", break_start: "", break_end: "", is_blocked: false, reason: "" });
+  const [replicateMode, setReplicateMode] = useState(false);
+  const [replicateDates, setReplicateDates] = useState<Date[]>([]);
+  const [replicateSource, setReplicateSource] = useState<any>(null);
   const { businessName } = useBusinessName();
   const appearanceSettings = useAppearance();
 
@@ -148,6 +154,60 @@ export default function Admin() {
         .order("blocked_date");
       if (error) throw error;
       return data;
+    },
+  });
+
+  const { data: scheduleOverrides } = useQuery({
+    queryKey: ["admin-schedule-overrides"],
+    enabled: isAdmin === true,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("schedule_overrides" as any)
+        .select("*")
+        .gte("override_date", format(new Date(), "yyyy-MM-dd"))
+        .order("override_date");
+      if (error) throw error;
+      return data as any[];
+    },
+  });
+
+  const overrideDatesSet = new Set((scheduleOverrides || []).map((o: any) => o.override_date));
+
+  const saveOverrideMutation = useMutation({
+    mutationFn: async (dates: Date[]) => {
+      for (const d of dates) {
+        const dateStr = format(d, "yyyy-MM-dd");
+        const payload: any = {
+          override_date: dateStr,
+          open_time: overrideForm.open_time,
+          close_time: overrideForm.close_time,
+          break_start: overrideForm.break_start || null,
+          break_end: overrideForm.break_end || null,
+          is_blocked: overrideForm.is_blocked,
+          reason: overrideForm.reason || null,
+        };
+        const { error } = await supabase.from("schedule_overrides" as any).upsert(payload, { onConflict: "override_date" } as any);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-schedule-overrides"] });
+      setOverrideModalOpen(false);
+      setReplicateMode(false);
+      setReplicateDates([]);
+      toast.success("Horário especial salvo!");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const deleteOverrideMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("schedule_overrides" as any).delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-schedule-overrides"] });
+      toast.success("Exceção removida!");
     },
   });
 
