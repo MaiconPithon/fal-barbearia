@@ -172,6 +172,42 @@ export type Database = {
         }
         Relationships: []
       }
+      schedule_overrides: {
+        Row: {
+          break_end: string | null
+          break_start: string | null
+          close_time: string
+          created_at: string
+          id: string
+          is_blocked: boolean
+          open_time: string
+          override_date: string
+          reason: string | null
+        }
+        Insert: {
+          break_end?: string | null
+          break_start?: string | null
+          close_time?: string
+          created_at?: string
+          id?: string
+          is_blocked?: boolean
+          open_time?: string
+          override_date: string
+          reason?: string | null
+        }
+        Update: {
+          break_end?: string | null
+          break_start?: string | null
+          close_time?: string
+          created_at?: string
+          id?: string
+          is_blocked?: boolean
+          open_time?: string
+          override_date?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
       services: {
         Row: {
           active: boolean
