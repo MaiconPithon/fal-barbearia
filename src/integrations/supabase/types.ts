@@ -28,6 +28,7 @@ export type Database = {
           service_description: string | null
           service_id: string
           status: Database["public"]["Enums"]["appointment_status"]
+          total_duration: number | null
           updated_at: string
         }
         Insert: {
@@ -43,6 +44,7 @@ export type Database = {
           service_description?: string | null
           service_id: string
           status?: Database["public"]["Enums"]["appointment_status"]
+          total_duration?: number | null
           updated_at?: string
         }
         Update: {
@@ -58,6 +60,7 @@ export type Database = {
           service_description?: string | null
           service_id?: string
           status?: Database["public"]["Enums"]["appointment_status"]
+          total_duration?: number | null
           updated_at?: string
         }
         Relationships: [
