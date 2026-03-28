@@ -99,7 +99,7 @@ export default function Agendar() {
       const dateStr = format(selectedDate!, "yyyy-MM-dd");
       const { data, error } = await supabase
         .from("appointments")
-        .select("appointment_time, service_id, status, actual_end_time, client_name, services(duration_minutes, buffer_minutes)")
+        .select("appointment_time, service_id, status, actual_end_time, client_name, total_duration, services(duration_minutes, buffer_minutes)")
         .eq("appointment_date", dateStr)
         .in("status", ["pendente", "confirmado"]);
       if (error) throw error;
@@ -232,6 +232,8 @@ export default function Agendar() {
         let apptEnd: number;
         if (a.actual_end_time) {
           apptEnd = toMin(a.actual_end_time.slice(0, 5));
+        } else if (a.total_duration) {
+          apptEnd = apptStart + a.total_duration;
         } else {
           const dur = a.services?.duration_minutes ?? 30;
           const buf = a.services?.buffer_minutes ?? 0;
@@ -364,7 +366,7 @@ export default function Agendar() {
       const dateStr = format(selectedDate!, "yyyy-MM-dd");
       const { data: existingAppts, error: checkError } = await supabase
         .from("appointments")
-        .select("appointment_time, service_id, actual_end_time, services(duration_minutes, buffer_minutes)")
+        .select("appointment_time, service_id, actual_end_time, total_duration, services(duration_minutes, buffer_minutes)")
         .eq("appointment_date", dateStr)
         .in("status", ["pendente", "confirmado"]);
       if (checkError) throw checkError;
@@ -377,6 +379,8 @@ export default function Agendar() {
         let aEnd: number;
         if (appt.actual_end_time) {
           aEnd = toMin(appt.actual_end_time.slice(0, 5));
+        } else if ((appt as any).total_duration) {
+          aEnd = aStart + (appt as any).total_duration;
         } else {
           const dur = (appt as any).services?.duration_minutes ?? 30;
           const buf = (appt as any).services?.buffer_minutes ?? 0;
@@ -398,6 +402,7 @@ export default function Agendar() {
           payment_method: "dinheiro" as any,
           price: totalPrice,
           service_description: serviceDescription,
+          total_duration: totalServiceSpan,
         } as any)
         .select()
         .single();

@@ -1,0 +1,1 @@
+ALTER TABLE public.appointments ADD COLUMN total_duration integer;

@@ -721,7 +721,7 @@ export default function Admin() {
                             <TableCell className="text-foreground">{a.client_phone}</TableCell>
                             <TableCell className="text-foreground">
                               <div>{(a as any).service_description || a.services?.name}</div>
-                              <div className="text-xs text-muted-foreground">{a.services?.duration_minutes ?? 30} min</div>
+                              <div className="text-xs text-muted-foreground">{(a as any).total_duration || a.services?.duration_minutes || 30} min</div>
                             </TableCell>
                             <TableCell className="text-primary font-semibold">R$ {Number(a.price).toFixed(2).replace(".", ",")}</TableCell>
                             <TableCell className="text-foreground capitalize">{a.payment_method}</TableCell>
