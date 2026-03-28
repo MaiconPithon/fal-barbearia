@@ -118,7 +118,7 @@ export function QuickSale() {
       // Check for overlapping appointments (time range collision)
       const { data: existingAppts, error: checkError } = await supabase
         .from("appointments")
-        .select("appointment_time, service_id, actual_end_time, services(duration_minutes, buffer_minutes)")
+        .select("appointment_time, service_id, actual_end_time, total_duration, services(duration_minutes, buffer_minutes)")
         .eq("appointment_date", dateStr)
         .in("status", ["pendente", "confirmado"]);
       if (checkError) throw checkError;
@@ -130,6 +130,8 @@ export function QuickSale() {
         let aEnd: number;
         if (appt.actual_end_time) {
           aEnd = toMin(appt.actual_end_time.slice(0, 5));
+        } else if ((appt as any).total_duration) {
+          aEnd = aStart + (appt as any).total_duration;
         } else {
           const dur = (appt as any).services?.duration_minutes ?? 30;
           const buf = (appt as any).services?.buffer_minutes ?? 0;
@@ -173,7 +175,8 @@ export function QuickSale() {
         status: paymentStatus as any,
         payment_method: "dinheiro" as any,
         actual_end_time: null,
-      });
+        total_duration: totalDuration,
+      } as any);
 
       if (error) throw error;
 
