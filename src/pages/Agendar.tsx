@@ -173,9 +173,24 @@ export default function Agendar() {
   const blockedTimes = new Set(blockedSlots?.filter((b) => b.blocked_time).map((b) => b.blocked_time!.slice(0, 5)) || []);
 
   const selectedDow = selectedDate ? getDay(selectedDate) : undefined;
-  const dayConfig = scheduleConfig?.find((c) => c.day_of_week === selectedDow);
+  const weeklyConfig = scheduleConfig?.find((c) => c.day_of_week === selectedDow);
 
-  const maxDate = addDays(startOfDay(new Date()), 7);
+  // Check for date-specific override first (hierarchy: override > weekly)
+  const dateOverride = selectedDate
+    ? (scheduleOverrides || []).find((o: any) => o.override_date === format(selectedDate, "yyyy-MM-dd"))
+    : undefined;
+
+  // Build effective config: override takes priority over weekly
+  const dayConfig = dateOverride
+    ? {
+        is_open: !dateOverride.is_blocked,
+        open_time: dateOverride.open_time || "08:00",
+        close_time: dateOverride.close_time || "21:00",
+        break_start: dateOverride.break_start || null,
+        break_end: dateOverride.break_end || null,
+      }
+    : weeklyConfig;
+
 
   const disabledDays = (date: Date) => {
     if (isBefore(date, startOfDay(new Date()))) return true;
