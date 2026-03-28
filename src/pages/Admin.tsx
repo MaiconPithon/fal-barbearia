@@ -863,11 +863,11 @@ export default function Admin() {
               <Card className="border-border bg-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-primary">
-                    <Ban className="h-5 w-5" /> Bloquear Data
+                    <Ban className="h-5 w-5" /> Bloquear Data / Horário Especial
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="mb-3 text-sm text-muted-foreground">Bloqueie datas para imprevistos, feriados ou folgas.</p>
+                  <p className="mb-3 text-sm text-muted-foreground">Bloqueie datas ou defina horários diferentes para dias específicos.</p>
                   <div className="flex justify-center mb-4">
                     <Calendar
                       mode="single"
@@ -875,6 +875,8 @@ export default function Admin() {
                       onSelect={setBlockDate}
                       locale={ptBR}
                       className="pointer-events-auto"
+                      modifiers={{ override: (date: Date) => overrideDatesSet.has(format(date, "yyyy-MM-dd")) }}
+                      modifiersStyles={{ override: { border: "2px solid hsl(43 74% 49%)", borderRadius: "8px" } }}
                     />
                   </div>
                   {blockDate && (
@@ -884,14 +886,105 @@ export default function Admin() {
                         value={blockReason}
                         onChange={(e) => setBlockReason(e.target.value)}
                       />
-                      <Button
-                        className="w-full gap-2"
-                        onClick={() => blockDateMutation.mutate()}
-                        disabled={blockDateMutation.isPending}
-                      >
-                        <Ban className="h-4 w-4" />
-                        Bloquear {format(blockDate, "dd/MM/yyyy")}
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          className="flex-1 gap-2"
+                          onClick={() => blockDateMutation.mutate()}
+                          disabled={blockDateMutation.isPending}
+                        >
+                          <Ban className="h-4 w-4" />
+                          Bloquear {format(blockDate, "dd/MM")}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          className="flex-1 gap-2 border-primary text-primary hover:bg-primary/10"
+                          onClick={() => {
+                            setOverrideDate(blockDate);
+                            const existing = (scheduleOverrides || []).find((o: any) => o.override_date === format(blockDate, "yyyy-MM-dd"));
+                            if (existing) {
+                              setOverrideForm({
+                                open_time: existing.open_time?.slice(0, 5) || "08:00",
+                                close_time: existing.close_time?.slice(0, 5) || "21:00",
+                                break_start: existing.break_start?.slice(0, 5) || "",
+                                break_end: existing.break_end?.slice(0, 5) || "",
+                                is_blocked: existing.is_blocked || false,
+                                reason: existing.reason || "",
+                              });
+                            } else {
+                              const dow = getDay(blockDate);
+                              const dc = scheduleConfig?.find((c) => c.day_of_week === dow);
+                              setOverrideForm({
+                                open_time: dc?.open_time?.slice(0, 5) || "08:00",
+                                close_time: dc?.close_time?.slice(0, 5) || "21:00",
+                                break_start: (dc as any)?.break_start?.slice(0, 5) || "",
+                                break_end: (dc as any)?.break_end?.slice(0, 5) || "",
+                                is_blocked: false,
+                                reason: "",
+                              });
+                            }
+                            setOverrideModalOpen(true);
+                          }}
+                        >
+                          <Clock className="h-4 w-4" />
+                          Editar Horário
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Overrides list */}
+                  {scheduleOverrides && scheduleOverrides.length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      <p className="text-sm font-medium text-primary">Horários Especiais:</p>
+                      {scheduleOverrides.map((o: any) => (
+                        <div key={o.id} className="flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
+                          <div>
+                            <span className="text-sm font-medium text-foreground">
+                              {format(new Date(o.override_date + "T12:00:00"), "dd/MM/yyyy")}
+                            </span>
+                            {o.is_blocked ? (
+                              <span className="ml-2 text-xs text-destructive">(Bloqueado)</span>
+                            ) : (
+                              <span className="ml-2 text-xs text-muted-foreground">
+                                {o.open_time?.slice(0, 5)} - {o.close_time?.slice(0, 5)}
+                                {o.break_start && ` | Pausa: ${o.break_start?.slice(0, 5)}-${o.break_end?.slice(0, 5)}`}
+                              </span>
+                            )}
+                            {o.reason && <span className="ml-2 text-xs text-muted-foreground">({o.reason})</span>}
+                          </div>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-primary hover:text-primary/80"
+                              title="Replicar para outras datas"
+                              onClick={() => {
+                                setReplicateSource(o);
+                                setOverrideForm({
+                                  open_time: o.open_time?.slice(0, 5) || "08:00",
+                                  close_time: o.close_time?.slice(0, 5) || "21:00",
+                                  break_start: o.break_start?.slice(0, 5) || "",
+                                  break_end: o.break_end?.slice(0, 5) || "",
+                                  is_blocked: o.is_blocked || false,
+                                  reason: o.reason || "",
+                                });
+                                setReplicateDates([]);
+                                setReplicateMode(true);
+                              }}
+                            >
+                              <Plus className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => deleteOverrideMutation.mutate(o.id)}
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
 
@@ -920,6 +1013,86 @@ export default function Admin() {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Override Modal */}
+              {overrideModalOpen && overrideDate && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setOverrideModalOpen(false)}>
+                  <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+                    <h3 className="mb-4 text-lg font-bold text-primary">
+                      Horário Especial — {format(overrideDate, "dd/MM/yyyy")}
+                    </h3>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3">
+                        <Switch checked={overrideForm.is_blocked} onCheckedChange={(v) => setOverrideForm((f) => ({ ...f, is_blocked: v }))} />
+                        <span className="text-sm text-white font-medium">Bloquear dia inteiro</span>
+                      </div>
+                      {!overrideForm.is_blocked && (
+                        <>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="mb-1 block text-sm text-white">Abertura</label>
+                              <Input type="time" value={overrideForm.open_time} onChange={(e) => setOverrideForm((f) => ({ ...f, open_time: e.target.value }))} className="border-primary/40 bg-secondary text-white" />
+                            </div>
+                            <div>
+                              <label className="mb-1 block text-sm text-white">Fechamento</label>
+                              <Input type="time" value={overrideForm.close_time} onChange={(e) => setOverrideForm((f) => ({ ...f, close_time: e.target.value }))} className="border-primary/40 bg-secondary text-white" />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="mb-1 block text-sm text-white">Início Pausa</label>
+                              <Input type="time" value={overrideForm.break_start} onChange={(e) => setOverrideForm((f) => ({ ...f, break_start: e.target.value }))} className="border-primary/40 bg-secondary text-white" />
+                            </div>
+                            <div>
+                              <label className="mb-1 block text-sm text-white">Fim Pausa</label>
+                              <Input type="time" value={overrideForm.break_end} onChange={(e) => setOverrideForm((f) => ({ ...f, break_end: e.target.value }))} className="border-primary/40 bg-secondary text-white" />
+                            </div>
+                          </div>
+                        </>
+                      )}
+                      <div>
+                        <label className="mb-1 block text-sm text-white">Motivo (opcional)</label>
+                        <Input value={overrideForm.reason} onChange={(e) => setOverrideForm((f) => ({ ...f, reason: e.target.value }))} placeholder="Ex: Feriado, evento especial" className="border-border bg-secondary text-white" />
+                      </div>
+                      <div className="flex gap-2 pt-2">
+                        <Button className="flex-1" onClick={() => saveOverrideMutation.mutate([overrideDate])} disabled={saveOverrideMutation.isPending}>
+                          Salvar
+                        </Button>
+                        <Button variant="outline" onClick={() => setOverrideModalOpen(false)}>Cancelar</Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Replicate Modal */}
+              {replicateMode && replicateSource && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setReplicateMode(false)}>
+                  <div className="w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-xl" onClick={(e) => e.stopPropagation()}>
+                    <h3 className="mb-2 text-lg font-bold text-primary">Replicar Horário Especial</h3>
+                    <p className="mb-3 text-sm text-white">
+                      Config: {replicateSource.open_time?.slice(0, 5)} - {replicateSource.close_time?.slice(0, 5)}
+                      {replicateSource.break_start && ` | Pausa: ${replicateSource.break_start?.slice(0, 5)}-${replicateSource.break_end?.slice(0, 5)}`}
+                    </p>
+                    <p className="mb-2 text-sm text-white">Selecione as datas para aplicar:</p>
+                    <div className="flex justify-center mb-4">
+                      <Calendar
+                        mode="multiple"
+                        selected={replicateDates}
+                        onSelect={(dates) => setReplicateDates(dates || [])}
+                        locale={ptBR}
+                        className="pointer-events-auto"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button className="flex-1" disabled={replicateDates.length === 0 || saveOverrideMutation.isPending} onClick={() => saveOverrideMutation.mutate(replicateDates)}>
+                        Aplicar em {replicateDates.length} data(s)
+                      </Button>
+                      <Button variant="outline" onClick={() => setReplicateMode(false)}>Cancelar</Button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </TabsContent>
 
