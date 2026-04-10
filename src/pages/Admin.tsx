@@ -47,6 +47,7 @@ export default function Admin() {
   const [blockDate, setBlockDate] = useState<Date | undefined>();
   const [blockReason, setBlockReason] = useState("");
   const [filterDate, setFilterDate] = useState<Date | undefined>();
+  const [showCancelled, setShowCancelled] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const [editingPasswordId, setEditingPasswordId] = useState<string | null>(null);
   const [newUserPassword, setNewUserPassword] = useState("");
@@ -495,10 +496,16 @@ export default function Admin() {
     }
   };
 
-  // Filtered appointments by date
-  const filteredAppointments = filterDate
-    ? appointments?.filter((a) => a.appointment_date === format(filterDate, "yyyy-MM-dd"))
-    : appointments;
+  // Filtered appointments: hide cancelled/excluded by default
+  const filteredAppointments = (appointments || [])
+    .filter((a) => {
+      if (!showCancelled && (a.status === "cancelado")) return false;
+      return true;
+    })
+    .filter((a) => {
+      if (filterDate) return a.appointment_date === format(filterDate, "yyyy-MM-dd");
+      return true;
+    });
 
   const openWhatsApp = (phone: string, clientName: string, appointmentTime: string, serviceName: string) => {
     if (!phone) return;
@@ -570,7 +577,7 @@ export default function Admin() {
 
   const todayStr = format(new Date(), "yyyy-MM-dd");
   const todayTotal = appointments?.filter((a) => a.appointment_date === todayStr && a.status === "finalizado").reduce((sum, a) => sum + Number(a.price), 0) || 0;
-  const todayCount = appointments?.filter((a) => a.appointment_date === todayStr && a.status !== "cancelado").length || 0;
+  const todayCount = appointments?.filter((a) => a.appointment_date === todayStr && (a.status === "pendente" || a.status === "confirmado" || a.status === "finalizado")).length || 0;
   const monthTotal = appointments?.filter((a) => a.appointment_date.startsWith(format(new Date(), "yyyy-MM")) && a.status === "finalizado").reduce((sum, a) => sum + Number(a.price), 0) || 0;
   const totalGeral = appointments?.filter((a) => a.status === "finalizado").reduce((sum, a) => sum + Number(a.price), 0) || 0;
 
@@ -688,6 +695,15 @@ export default function Admin() {
                         <X className="h-4 w-4" /> Limpar
                       </Button>
                     )}
+                    <Button
+                      variant={showCancelled ? "secondary" : "outline"}
+                      size="sm"
+                      onClick={() => setShowCancelled(!showCancelled)}
+                      className="gap-1"
+                    >
+                      {showCancelled ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showCancelled ? "Ocultar Cancelados" : "Ver Cancelados"}
+                    </Button>
                   </div>
                 </div>
               </CardHeader>
