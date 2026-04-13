@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { WhatsAppButton } from "@/components/WhatsAppButton";
 import { Scissors, Clock, MapPin, Phone, Star, ChevronDown, ChevronUp, X, AlertTriangle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/supabaseClient";
 import { useNavigate } from "react-router-dom";
 import logoFalFallback from "@/assets/logo-fal.png";
 import { useBusinessName } from "@/hooks/useBusinessName";
