@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,15 @@ interface TimelineBlock {
   label?: string;
 }
 
+class BookingUserFacingError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "BookingUserFacingError";
+  }
+}
+
+const GENERIC_BOOKING_ERROR = "Não foi possível concluir o agendamento. Verifique sua conexão e tente novamente.";
+
 export default function Agendar() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -50,6 +59,8 @@ export default function Agendar() {
   const [paymentMethod, setPaymentMethod] = useState<"pix" | "dinheiro">("dinheiro");
   const [hoveredRating, setHoveredRating] = useState(0);
   const [submittedRating, setSubmittedRating] = useState(false);
+  const [isSubmittingCheckout, setIsSubmittingCheckout] = useState(false);
+  const checkoutLockRef = useRef(false);
 
   const { data: services } = useQuery({
     queryKey: ["services"],
@@ -359,30 +370,35 @@ export default function Agendar() {
 
   const createAppointment = useMutation({
     mutationFn: async () => {
-      // --- Pre-flight validation ---
-      if (!clientName?.trim()) throw new Error("Informe seu nome.");
-      if (!clientPhone?.trim()) throw new Error("Informe seu telefone.");
-      if (!selectedDate) throw new Error("Selecione uma data.");
-      if (!selectedTime) throw new Error("Selecione um horário.");
-      if (!selectedServices?.length) throw new Error("Selecione ao menos um serviço.");
-      if (!totalServiceSpan || totalServiceSpan <= 0) throw new Error("Duração inválida. Selecione os serviços novamente.");
+      const isValidDate = selectedDate instanceof Date && !Number.isNaN(selectedDate.getTime());
+
+      if (!clientName?.trim()) throw new BookingUserFacingError("Informe seu nome.");
+      if (!clientPhone?.trim()) throw new BookingUserFacingError("Informe seu telefone.");
+      if (!isValidDate) throw new BookingUserFacingError("Selecione uma data válida.");
+      if (!selectedTime?.trim()) throw new BookingUserFacingError("Selecione um horário.");
+      if (!selectedServices?.length) throw new BookingUserFacingError("Selecione ao menos um serviço.");
+      if (!selectedServices.every((service) => service?.id && Number(service?.duration_minutes) > 0)) {
+        throw new BookingUserFacingError("Serviço inválido. Selecione os serviços novamente.");
+      }
+      if (!Number.isFinite(totalServiceSpan) || totalServiceSpan <= 0) {
+        throw new BookingUserFacingError("Duração inválida. Selecione os serviços novamente.");
+      }
+      if (!Number.isFinite(totalPrice) || totalPrice < 0) {
+        throw new BookingUserFacingError("Valor inválido. Revise os serviços selecionados.");
+      }
 
       const firstServiceId = selectedServices[0]?.id;
-      if (!firstServiceId) throw new Error("Serviço inválido. Tente novamente.");
+      if (!firstServiceId) throw new BookingUserFacingError("Serviço inválido. Tente novamente.");
 
       const dateStr = format(selectedDate, "yyyy-MM-dd");
 
       try {
-        // Check for overlapping appointments
         const { data: existingAppts, error: checkError } = await supabase
           .from("appointments")
           .select("appointment_time, service_id, actual_end_time, total_duration, services(duration_minutes, buffer_minutes)")
           .eq("appointment_date", dateStr)
           .in("status", ["pendente", "confirmado"]);
-        if (checkError) {
-          console.error('Supabase overlap check error:', checkError);
-          throw new Error("Erro ao verificar disponibilidade. Verifique sua conexão.");
-        }
+        if (checkError) throw checkError;
 
         const newStart = toMin(selectedTime);
         const newEnd = newStart + totalServiceSpan;
@@ -400,7 +416,7 @@ export default function Agendar() {
             aEnd = aStart + dur + buf;
           }
           if (newStart < aEnd && newEnd > aStart) {
-            throw new Error(`Este período já está ocupado por outro serviço. Escolha um horário após as ${toTime(aEnd)}.`);
+            throw new BookingUserFacingError(`Este período já está ocupado por outro serviço. Escolha um horário após as ${toTime(aEnd)}.`);
           }
         }
 
@@ -412,7 +428,7 @@ export default function Agendar() {
             service_id: firstServiceId,
             appointment_date: dateStr,
             appointment_time: selectedTime,
-            payment_method: "dinheiro" as any,
+            payment_method: paymentMethod as any,
             price: totalPrice ?? 0,
             service_description: serviceDescription || "",
             total_duration: totalServiceSpan,
@@ -420,20 +436,17 @@ export default function Agendar() {
           .select()
           .single();
 
-        if (error) {
-          console.error('Supabase insert error:', JSON.stringify(error));
-          throw new Error("Erro ao processar agendamento. Verifique sua conexão.");
-        }
+        if (error) throw error;
 
         if (!data?.id) {
-          console.error('Insert returned no data:', data);
-          throw new Error("Agendamento não pôde ser concluído. Tente novamente.");
+          throw new Error("Booking insert returned without id.");
         }
 
         return data;
-      } catch (err: any) {
-        console.error('Booking error details:', err?.message, err?.code, err);
-        throw err;
+      } catch (error) {
+        console.error("Erro ao finalizar:", error);
+        if (error instanceof BookingUserFacingError) throw error;
+        throw new Error(GENERIC_BOOKING_ERROR);
       }
     },
     onSuccess: (data) => {
@@ -448,10 +461,13 @@ export default function Agendar() {
       const barberMsg = `🔔 *Novo Agendamento!*\n\n👤 Cliente: ${clientName}\n📱 Tel: ${clientPhone}\n✂️ Serviço: ${serviceDescription}\n📅 Data: ${dateStr} às ${selectedTime}\n💰 Valor: ${valor}\n💳 Pagamento: Pagar no Local`;
       window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(barberMsg)}`, "_blank");
     },
-    onError: (err: any) => {
-      toast.error(err?.message || "Erro ao agendar. Tente novamente.");
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : GENERIC_BOOKING_ERROR;
+      toast.error(message || GENERIC_BOOKING_ERROR);
     },
   });
+
+  const isSubmittingBooking = isSubmittingCheckout || createAppointment.isPending;
 
   const submitRating = useMutation({
     mutationFn: async (stars: number) => {
@@ -482,14 +498,34 @@ export default function Agendar() {
       case "time": return !!selectedTime;
       case "info": return clientName.trim().length > 0 && clientPhone.trim().length > 0;
       case "payment": return !!paymentMethod;
-      case "confirm": return true;
+      case "confirm":
+        return Boolean(
+          clientName.trim() &&
+          clientPhone.trim() &&
+          selectedDate &&
+          selectedTime &&
+          selectedServices.length > 0 &&
+          totalServiceSpan > 0,
+        );
       default: return false;
     }
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (step === "confirm") {
-      createAppointment.mutate();
+      if (checkoutLockRef.current || isSubmittingBooking) return;
+
+      checkoutLockRef.current = true;
+      setIsSubmittingCheckout(true);
+
+      try {
+        await createAppointment.mutateAsync();
+      } catch {
+      } finally {
+        checkoutLockRef.current = false;
+        setIsSubmittingCheckout(false);
+      }
+
       return;
     }
     const next = STEPS[currentStepIndex + 1];
@@ -827,15 +863,15 @@ export default function Agendar() {
           <div>
             <h2 className="mb-4 text-lg font-semibold text-primary">Confirmar Agendamento</h2>
             <div className="space-y-1 rounded-lg border border-border bg-card p-5">
-              <p className="text-sm text-foreground"><span className="text-muted-foreground">Nome: </span><strong>{clientName}</strong></p>
-              <p className="text-sm text-foreground"><span className="text-muted-foreground">Telefone: </span><strong>{clientPhone}</strong></p>
-              <p className="text-sm text-foreground"><span className="text-muted-foreground">Data: </span><strong>{selectedDate && format(selectedDate, "dd/MM/yyyy")}</strong></p>
-              <p className="text-sm text-foreground"><span className="text-muted-foreground">Horário: </span><strong>{selectedTime}</strong></p>
-              <p className="text-sm text-foreground"><span className="text-muted-foreground">Serviço: </span><strong>{serviceDescription}</strong></p>
-              <p className="text-sm text-foreground"><span className="text-muted-foreground">Duração: </span><strong>{totalDuration} min</strong></p>
+              <p className="text-sm text-foreground"><span className="text-muted-foreground">Nome: </span><strong>{clientName || "—"}</strong></p>
+              <p className="text-sm text-foreground"><span className="text-muted-foreground">Telefone: </span><strong>{clientPhone || "—"}</strong></p>
+              <p className="text-sm text-foreground"><span className="text-muted-foreground">Data: </span><strong>{selectedDate ? format(selectedDate, "dd/MM/yyyy") : "—"}</strong></p>
+              <p className="text-sm text-foreground"><span className="text-muted-foreground">Horário: </span><strong>{selectedTime || "—"}</strong></p>
+              <p className="text-sm text-foreground"><span className="text-muted-foreground">Serviço: </span><strong>{serviceDescription || "—"}</strong></p>
+              <p className="text-sm text-foreground"><span className="text-muted-foreground">Duração: </span><strong>{totalDuration || 0} min</strong></p>
               <p className="text-sm text-foreground"><span className="text-muted-foreground">Pagamento: </span><strong>Pagar no Local</strong></p>
               <div className="border-t border-border pt-2 mt-2">
-                <p className="text-sm"><span className="text-muted-foreground">Total: </span><span className="font-bold text-[#d1b122]">R$ {totalPrice.toFixed(2).replace(".", ",")}</span></p>
+                <p className="text-sm"><span className="text-muted-foreground">Total: </span><span className="font-bold text-[#d1b122]">R$ {(totalPrice ?? 0).toFixed(2).replace(".", ",")}</span></p>
               </div>
             </div>
             {selectedTimeWarning && (
@@ -921,11 +957,11 @@ export default function Agendar() {
         <div className="fixed bottom-0 left-0 right-0 bg-background p-4">
           <Button
             className="w-full gap-2 text-base bg-[#d1b122] hover:bg-[#bfa01e] text-black font-bold"
-            disabled={!canContinue() || createAppointment.isPending}
+            disabled={!canContinue() || isSubmittingBooking}
             onClick={handleContinue}
           >
             {step === "confirm"
-              ? createAppointment.isPending 
+              ? isSubmittingBooking
                 ? <><Loader2 className="h-4 w-4 animate-spin" /> Agendando...</>
                 : "Confirmar Agendamento"
               : <>Continuar <ChevronRight className="h-4 w-4" /></>

@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HashRouter, Routes, Route } from "react-router-dom";
 import { useAppearance } from "@/hooks/useAppearance";
 import { Analytics } from "@vercel/analytics/react";
+import { BookingCheckoutBoundary } from "@/components/BookingCheckoutBoundary";
 import Index from "./pages/Index";
 import Agendar from "./pages/Agendar";
 import AdminLogin from "./pages/AdminLogin";
@@ -29,7 +30,7 @@ const App = () => (
         <HashRouter>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/agendar" element={<Agendar />} />
+            <Route path="/agendar" element={<BookingCheckoutBoundary><Agendar /></BookingCheckoutBoundary>} />
             <Route path="/admin-login" element={<AdminLogin />} />
             <Route path="/admin" element={<Admin />} />
             <Route path="/reset-password" element={<ResetPassword />} />
